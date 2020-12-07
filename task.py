@@ -1,4 +1,3 @@
-import threading
 from uuid import uuid4
 from datetime import datetime
 from abc import ABC, abstractmethod
@@ -10,8 +9,6 @@ FREE = 'free'
 PROCESSING = 'processing'
 COMPLETE = 'complete'
 ERROR = 'error'
-
-mutex = threading.Lock()
 
 
 class Task:
@@ -79,11 +76,9 @@ class BaseTaskManager(ABCTaskManager):
         self.tasks = OrderedDict()  # uuid: Task
 
     def manage_tasks(self):
-        mutex.acquire()
         free_tasks = self.pop_chunk(self.chunk_size)
         if free_tasks:
             print(f'Start round at local: {datetime.now().strftime("%H:%M:%S")}')
-        mutex.release()
 
         for task in free_tasks:  # `reversed` are too broad
             task.process()
@@ -131,18 +126,19 @@ class BaseTaskManager(ABCTaskManager):
             return None
         return task.status
 
-    def add_scheduler_job(self, aps_scheduler: BackgroundScheduler):
-        aps_scheduler.add_job(
-            id=self.job_id,
-            func=self.manage_tasks,
-            trigger='interval',
-            seconds=self.delay_time,
-            max_instances=6,
-            misfire_grace_time=3
-        )
-
     def after_hook(self):
         pass
+
+
+def add_to_scheduler(scheduler: BackgroundScheduler, manager: BaseTaskManager):
+    scheduler.add_job(
+        id=manager.job_id,
+        func=manager.manage_tasks,
+        trigger='interval',
+        seconds=manager.delay_time,
+        max_instances=6,
+        misfire_grace_time=3
+    )
 
 
 class TaskManager(BaseTaskManager):

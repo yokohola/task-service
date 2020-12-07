@@ -1,5 +1,5 @@
 import os
-from task import TaskManager, Task
+from task import TaskManager, Task, add_to_scheduler
 from flask_expects_json import expects_json
 from flask import Flask, request, jsonify, send_from_directory
 from apscheduler.executors.pool import ThreadPoolExecutor
@@ -30,7 +30,7 @@ scheduler.start()
 # Init managers
 # ------------------------------------------------ #
 manager = TaskManager()
-manager.add_scheduler_job(scheduler)
+add_to_scheduler(scheduler, manager)
 
 # ------------------------------------------------ #
 # Init schema for validation input data
@@ -65,7 +65,7 @@ def route_get_task(task_id):
 
 @app.route('/files/<path:filename>/', methods=('GET',))
 def download_file(filename):
-    """Download file by name, if it does not exists - raises 404."""
+    """Download file by name, if it does not exist - raises 404."""
     return send_from_directory(
         FILE_DIR,
         filename,
